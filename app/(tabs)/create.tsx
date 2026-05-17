@@ -80,7 +80,8 @@ export default function CreateScreen() {
       description: 'It\u2019s live in the feed.',
     });
     reset();
-    router.replace(`/event/${id}`);
+    void id;
+    router.replace('/');
   };
 
   return (
