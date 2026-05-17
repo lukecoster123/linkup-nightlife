@@ -18,11 +18,12 @@ import { useEffect } from 'react';
 import * as DevClient from 'expo-dev-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { DARK_THEME, LIGHT_THEME } from '@/lib/constants';
+import { DARK_THEME } from '@/lib/constants';
 import { initPostHog } from '@/lib/posthog';
 import { reportErrorToParent } from '@/lib/reportPreviewError';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { ToastProvider } from '@/components/ui/toast';
+import { AuthGate } from '@/components/AuthGate';
 
 import {
   ErrorBoundary as ExpoErrorBoundary,
@@ -31,10 +32,6 @@ import {
   Stack,
 } from 'expo-router';
 
-/**
- * Custom ErrorBoundary that reports React render errors to the parent window (Bilt preview iframe)
- * and then renders the default Expo error UI.
- */
 function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   useEffect(() => {
     if (Platform.OS === 'web' && error) {
@@ -47,7 +44,6 @@ function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 
 export { ErrorBoundary };
 
-// Prevent the splash screen from auto-hiding before getting the color scheme.
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -60,23 +56,20 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
+  // Force dark theme — LinkUp is dark-only.
+  useEffect(() => {
+    if (colorScheme !== 'dark') setColorScheme('dark');
+  }, [colorScheme, setColorScheme]);
+
   useEffect(() => {
     void (async () => {
       try {
-        const theme = await AsyncStorage.getItem('theme');
-        if (!theme) {
-          await AsyncStorage.setItem('theme', colorScheme);
-          return;
-        }
-        const colorTheme = theme === 'dark' ? 'dark' : 'light';
-        if (colorTheme !== colorScheme) {
-          setColorScheme(colorTheme);
-        }
-      } catch (_error) {
-        // no-op on storage errors
+        await AsyncStorage.setItem('theme', 'dark');
+      } catch {
+        // no-op
       }
     })();
-  }, [colorScheme, setColorScheme]);
+  }, []);
 
   useEffect(() => {
     if (loaded || error) {
@@ -84,7 +77,6 @@ export default function RootLayout() {
     }
   }, [loaded, error]);
 
-  // Report uncaught JS errors and unhandled promise rejections to parent (Bilt preview iframe)
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return undefined;
 
@@ -92,14 +84,12 @@ export default function RootLayout() {
       const message = event.error?.stack ?? event.message ?? 'Unknown error';
       reportErrorToParent(message);
     };
-
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const err = event.reason;
       const message =
         err instanceof Error ? [err.message, err.stack].filter(Boolean).join('\n') : String(err);
       reportErrorToParent(message);
     };
-
     window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
     return () => {
@@ -108,29 +98,19 @@ export default function RootLayout() {
     };
   }, []);
 
-  // Inject Google Fonts link tag for web to ensure fonts load through proxy
-  // Also register font family names as fallback if expo-font fails
   useEffect(() => {
     if (Platform.OS === 'web') {
-      // Check if link already exists
       const existingLink = document.querySelector(
         'link[href*="fonts.googleapis.com/css2?family=Inter"]',
       );
-
       if (!existingLink) {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
         link.href =
-          'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap';
+          'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap';
         link.crossOrigin = 'anonymous';
         document.head.appendChild(link);
       }
-
-      // Note: The @import in global.css and the link tag above ensure Inter font loads
-      // expo-font will register the font family names (Inter_400Regular, etc.)
-      // If expo-font fails due to proxy issues, the fonts should still be available
-      // via the direct Google Fonts CDN link, though the specific font family names
-      // might not be registered. The app should still render with Inter font.
     }
   }, []);
 
@@ -158,13 +138,26 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DARK_THEME : LIGHT_THEME}>
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-        <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={DARK_THEME}>
+        {/* oxlint-disable-next-line react/style-prop-object */}
+        <StatusBar style="light" />
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: 'hsl(270 35% 4%)' }}>
           <ToastProvider>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ title: 'Habits', headerShown: false }} />
-            </Stack>
+            <AuthGate>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: 'hsl(270 35% 4%)' },
+                }}
+              >
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="auth" />
+                <Stack.Screen name="pick-city" />
+                <Stack.Screen name="waitlist" />
+                <Stack.Screen name="event/[id]" options={{ presentation: 'card' }} />
+                <Stack.Screen name="u/[id]" />
+              </Stack>
+            </AuthGate>
           </ToastProvider>
         </GestureHandlerRootView>
       </ThemeProvider>
