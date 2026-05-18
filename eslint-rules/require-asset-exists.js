@@ -40,7 +40,7 @@ function loadTsConfig(projectRoot) {
     tsconfigCache = tsconfig;
     tsconfigCachePath = tsconfigPath;
     return tsconfig;
-  } catch (_error) {
+  } catch {
     // If parsing fails, return null (will skip alias resolution)
     return null;
   }
@@ -246,7 +246,7 @@ const requireAssetExistsRule = {
                       message: `Asset path points to a directory, not a file: ${requirePath}`,
                     });
                   }
-                } catch (_statError) {
+                } catch {
                   // If we can't stat it, assume it's fine (might be a symlink issue)
                   // The existsSync already passed, so it exists in some form
                 }

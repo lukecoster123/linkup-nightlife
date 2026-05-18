@@ -6,7 +6,7 @@
     "es2024": true,
     "react-native": true
   },
-  "plugins": ["react", "typescript", "import", "unicorn"],
+  "plugins": ["react", "import", "unicorn"],
   "jsPlugins": [
     { "name": "custom", "specifier": "./eslint-rules/require-asset-exists.js" },
     { "name": "store", "specifier": "./eslint-rules/no-unstable-zustand-selector.js" },
@@ -17,10 +17,6 @@
   "categories": {
     "correctness": "error",
     "suspicious": "warn"
-  },
-  "options": {
-    "typeAware": true,
-    "typeCheck": true
   },
   "settings": {
     "react": { "version": "19.1.0" }
@@ -41,26 +37,13 @@
     "react/no-array-index-key": "warn",
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "error",
-    "react-compiler/react-compiler": "error",
-    "@typescript-eslint/no-unused-vars": [
-      "error",
-      {
-        "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_",
-        "caughtErrorsIgnorePattern": "^_",
-        "ignoreRestSiblings": true
-      }
-    ]
+    "react-compiler/react-compiler": "error"
   },
   "ignorePatterns": ["dist", "context", ".expo", "node_modules", "android/app/build"],
   "overrides": [
     {
       "files": ["metro.config.cjs", "*.config.js"],
       "env": { "node": true }
-    },
-    {
-      "files": ["**/*.d.ts"],
-      "rules": {}
     }
   ]
 }
